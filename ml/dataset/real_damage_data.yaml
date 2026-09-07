@@ -1,0 +1,15 @@
+# PharmaPack QV — Real Logistics Package Damage YOLOv8 Dataset Config
+# Combines Amazon Kaputt & Roboflow Real Parcel Damage Annotations
+
+path: ../../data/real_datasets/parcel_damage
+train: images/train
+val: images/val
+test: images/test
+
+names:
+  0: clean_carton
+  1: crushed_corner
+  2: tape_breach
+  3: torn_corrugate
+  4: label_obscured
+  5: missing_ice_pack

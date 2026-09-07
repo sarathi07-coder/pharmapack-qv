@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PharmaPack QV — Pharmaceutical Packing Quality Verification</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <!-- TOP NAVIGATION BAR -->
+    <header class="top-nav">
+        <div class="nav-brand">
+            <div class="brand-logo">
+                <span class="pulse-dot"></span>
+                <span class="logo-text">PHARMAPACK <span class="accent-text">QV</span></span>
+            </div>
+            <div class="zone-pill cold-chain" id="zoneStatusPill">
+                <span class="pill-icon">❄️</span>
+                <span class="pill-label">ZONE B: <strong>4.2°C (2-8°C NORMAL)</strong></span>
+            </div>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" data-view="operatorView" id="tabOperator">📦 Operator Station</button>
+            <button class="nav-tab" data-view="supervisorView" id="tabSupervisor">🛡️ Supervisor HITL <span class="badge-count" id="exceptionCount">1</span></button>
+            <button class="nav-tab" data-view="auditView" id="tabAudit">🔒 21 CFR Part 11 Audit</button>
+            <button class="nav-tab" data-view="tradeoffView" id="tabTradeoff">⚖️ 4-Way Trade-Off</button>
+        </div>
+
+        <div class="nav-user">
+            <div class="compliance-badge">
+                <span class="badge-icon">✓</span>
+                <span>SHA-256 AUDIT ACTIVE</span>
+            </div>
+            <div class="user-profile">
+                <div class="user-avatar">RK</div>
+                <div class="user-info">
+                    <span class="user-name">Rajesh Kumar</span>
+                    <span class="user-meta">Badge: OP-101 | Shift A</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="main-content">
+        <!-- ================= VIEW 1: OPERATOR PACKING STATION ================= -->
+        <section class="view-panel active" id="operatorView">
+            <div class="station-grid">
+                <!-- COLUMN 1: HARDWARE & CAMERA HUD -->
+                <div class="glass-card hardware-col">
+                    <div class="card-header">
+                        <div class="header-title">
+                            <span class="icon">📷</span>
+                            <h3>STATION 01 — LIVE VIEW</h3>
+                        </div>
+                        <span class="live-tag"><span class="blink-dot"></span> LIVE 60FPS</span>
+                    </div>
+
+                    <!-- CAMERA VIEWFINDER -->
+                    <div class="viewfinder-container">
+                        <div class="reticle">
+                            <div class="reticle-corner tl"></div>
+                            <div class="reticle-corner tr"></div>
+                            <div class="reticle-corner bl"></div>
+                            <div class="reticle-corner br"></div>
+                            <div class="scan-laser"></div>
+                        </div>
+                        <img id="cameraFeedImg" src="/static/samples/sample_clean.jpg" alt="Packaging Viewfinder">
+                        <div class="hud-watermark">AI COMPUTER VISION INSPECTION GATE</div>
+                        <div class="hud-temp-reading" id="hudTempReading">TEMP: 4.2°C</div>
+                    </div>
+
+                    <!-- TEST PACKAGING PRESETS -->
+                    <div class="controls-row">
+                        <label class="control-label">SIMULATE WAREHOUSE CARTON:</label>
+                        <div class="preset-buttons">
+                            <button class="preset-btn active" data-preset="sample_clean.jpg" data-zone="2-8°C" data-defect="CLEAN">Clean Compliant</button>
+                            <button class="preset-btn" data-preset="sample_crushed.jpg" data-zone="15-25°C" data-defect="CRUSHED_CORNER">Crushed Corner</button>
+                            <button class="preset-btn" data-preset="sample_tamper_breach.jpg" data-zone="2-8°C" data-defect="TAPE_BREACH">Tamper Breach</button>
+                            <button class="preset-btn" data-preset="sample_missing_ice.jpg" data-zone="2-8°C" data-defect="MISSING_ICE_PACK">Missing Ice Pack</button>
+                        </div>
+                    </div>
+
+                    <!-- ATTRIBUTE CONTROLS -->
+                    <div class="attributes-grid">
+                        <div class="attr-box">
+                            <span class="attr-title">STORAGE ZONE</span>
+                            <div class="zone-selector">
+                                <button class="zone-btn active" data-zone="2-8°C">2-8°C</button>
+                                <button class="zone-btn" data-zone="15-25°C">15-25°C</button>
+                                <button class="zone-btn" data-zone="-20°C">-20°C</button>
+                            </div>
+                        </div>
+                        <div class="attr-box">
+                            <span class="attr-title">SCALE WEIGHT</span>
+                            <div class="digital-lcd" id="scaleLcd">3.42 <span class="unit">KG</span></div>
+                        </div>
+                    </div>
+
+                    <!-- BARCODE HUD -->
+                    <div class="barcode-hud">
+                        <div class="hud-item"><span class="label">ORDER:</span> <span class="val" id="hudOrderNum">PH-ORD-9021</span></div>
+                        <div class="hud-item"><span class="label">AWB:</span> <span class="val" id="hudAwb">AWB-8839210</span></div>
+                        <div class="hud-item"><span class="label">GS1 BATCH:</span> <span class="val">BN-2026-X491</span></div>
+                    </div>
+                </div>
+
+                <!-- COLUMN 2: AI INSIGHT & VERDICT HUD -->
+                <div class="glass-card verdict-col">
+                    <div class="card-header">
+                        <div class="header-title">
+                            <span class="icon">🤖</span>
+                            <h3>LANGGRAPH VERDICT</h3>
+                        </div>
+                        <div class="confidence-pill" id="confPill">CONFIDENCE: 98.5%</div>
+                    </div>
+
+                    <!-- INSTANT VERDICT BANNER -->
+                    <div class="verdict-banner pass" id="verdictBanner">
+                        <div class="verdict-status-icon" id="verdictIcon">✓</div>
+                        <div class="verdict-text-block">
+                            <h1 class="verdict-title" id="verdictTitle">PASS — VERIFIED</h1>
+                            <p class="verdict-desc" id="verdictDesc">All packaging attributes comply with WHO Annex 5 & 21 CFR Part 211.</p>
+                        </div>
+                    </div>
+
+                    <!-- GRAD-CAM HEATMAP SECTION -->
+                    <div class="heatmap-section">
+                        <div class="heatmap-header">
+                            <span class="sub-title">EXPLAINABLE AI (XAI) GRAD-CAM HEATMAP</span>
+                            <button class="toggle-btn" id="toggleHeatmapBtn">Toggle Raw View</button>
+                        </div>
+                        <div class="heatmap-container">
+                            <img id="heatmapImg" src="/static/samples/sample_clean.jpg" alt="Grad-CAM Heatmap">
+                            <div class="heatmap-tag" id="defectTag">✓ ZERO DEFECTS DETECTED</div>
+                        </div>
+                    </div>
+
+                    <!-- DYNAMIC SOP CHECKLIST -->
+                    <div class="sop-section">
+                        <span class="sub-title">GDP SOP PACKING CHECKLIST</span>
+                        <div class="sop-list" id="sopList">
+                            <div class="sop-item checked"><span class="sop-check">✓</span> <span>SOP-SEAL-01: Tamper-evident blue tape intact across seam</span></div>
+                            <div class="sop-item checked"><span class="sop-check">✓</span> <span>SOP-BOX-02: Shipper carton structural integrity intact</span></div>
+                            <div class="sop-item checked"><span class="sop-check">✓</span> <span>SOP-COLD-01: Pre-conditioned phase coolant verified</span></div>
+                            <div class="sop-item checked"><span class="sop-check">✓</span> <span>SOP-DUN-03: Void ratio under 20% limit</span></div>
+                        </div>
+                    </div>
+
+                    <!-- VOICE ASSISTANT -->
+                    <div class="voice-assistant-bar">
+                        <button class="voice-mic-btn" id="voiceMicBtn">🎤</button>
+                        <div class="voice-waveform">
+                            <span class="wave"></span><span class="wave"></span><span class="wave"></span><span class="wave"></span><span class="wave"></span>
+                        </div>
+                        <div class="voice-text" id="voicePrompt">"Package verified compliant. Ready for label print."</div>
+                    </div>
+                </div>
+
+                <!-- COLUMN 3: 4-WAY TRADE-OFF & ACTIONS -->
+                <div class="glass-card actions-col">
+                    <div class="card-header">
+                        <div class="header-title">
+                            <span class="icon">⚖️</span>
+                            <h3>4-WAY TRADE-OFF</h3>
+                        </div>
+                        <span class="badge-mini">REAL-TIME</span>
+                    </div>
+
+                    <!-- 4-WAY TRADE-OFF METRICS -->
+                    <div class="tradeoff-grid">
+                        <div class="tradeoff-card">
+                            <span class="to-label">PACKAGING COST</span>
+                            <div class="to-value" id="toCost">$3.50</div>
+                            <span class="to-sub">Standard Carton</span>
+                        </div>
+                        <div class="tradeoff-card">
+                            <span class="to-label">INSPECTION TIME</span>
+                            <div class="to-value" id="toTime">0.35s</div>
+                            <span class="to-sub">Ultra-low Latency</span>
+                        </div>
+                        <div class="tradeoff-card">
+                            <span class="to-label">CARBON FOOTPRINT</span>
+                            <div class="to-value" id="toCarbon">0.45 <span class="unit">kg</span></div>
+                            <span class="to-sub">CO2e Emissions</span>
+                        </div>
+                        <div class="tradeoff-card highlight">
+                            <span class="to-label">RELIABILITY SCORE</span>
+                            <div class="to-value" id="toReliability">99.4%</div>
+                            <span class="to-sub">Escape Prevention</span>
+                        </div>
+                    </div>
+
+                    <!-- ECONOMIC ADOPTION JUSTIFICATION -->
+                    <div class="adoption-box" id="adoptionBox">
+                        <div class="adoption-title">💡 ADOPTION JUSTIFICATION</div>
+                        <div class="adoption-body" id="adoptionText">
+                            Clean baseline dispatch. Zero rework penalty. Detecting defects before dispatch prevents an average $145.00 post-dispatch claim.
+                        </div>
+                    </div>
+
+                    <!-- DISPATCH ACTION BUTTONS -->
+                    <div class="action-buttons-group">
+                        <button class="btn-primary" id="btnRunVerification">
+                            <span class="btn-icon">⚡</span> RUN AI VERIFICATION
+                        </button>
+                        <button class="btn-success" id="btnPrintZebra">
+                            <span class="btn-icon">🖨️</span> PRINT ZEBRA DISPATCH LABEL
+                        </button>
+                        <button class="btn-warning" id="btnEscalate">
+                            <span class="btn-icon">⚠️</span> ESCALATE TO SUPERVISOR (HITL)
+                        </button>
+                    </div>
+
+                    <!-- AUDIT SEAL FOOTER -->
+                    <div class="audit-seal">
+                        <div class="seal-icon">🔒</div>
+                        <div class="seal-info">
+                            <span class="seal-label">21 CFR PART 11 HASH:</span>
+                            <span class="seal-hash" id="auditHashDisplay">097125245510051be5111bc4716fdd3b...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= VIEW 2: SUPERVISOR HITL HUB ================= -->
+        <section class="view-panel" id="supervisorView">
+            <div class="supervisor-layout">
+                <!-- EXCEPTION QUEUE -->
+                <div class="glass-card queue-panel">
+                    <div class="card-header">
+                        <h3>⚠️ PENDING EXCEPTIONS (HITL QUEUE)</h3>
+                        <span class="badge-orange">Action Required</span>
+                    </div>
+                    <div class="exception-list">
+                        <div class="exception-card active">
+                            <div class="ex-top">
+                                <span class="ex-order">PH-ORD-9022</span>
+                                <span class="ex-badge-red">CRUSHED CORNER</span>
+                            </div>
+                            <div class="ex-meta">Station 02 | Operator: OP-102 | Zone: 15-25°C</div>
+                            <div class="ex-reason">ISTA-3A Corner crush deformation exceeds 10mm limit.</div>
+                        </div>
+                        <div class="exception-card">
+                            <div class="ex-top">
+                                <span class="ex-order">PH-ORD-9023</span>
+                                <span class="ex-badge-red">TAPE BREACH</span>
+                            </div>
+                            <div class="ex-meta">Station 01 | Operator: OP-101 | Zone: 2-8°C</div>
+                            <div class="ex-reason">Tamper-evident blue seal torn across central seam.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FORENSIC COMPARISON VIEWER -->
+                <div class="glass-card compare-panel">
+                    <div class="card-header">
+                        <h3>🔬 FORENSIC DEFECT INSPECTION</h3>
+                        <span class="badge-mini">AI vs Golden Standard</span>
+                    </div>
+                    <div class="compare-view">
+                        <div class="compare-box">
+                            <span class="box-title">CURRENT DEFECTIVE CARTON</span>
+                            <img src="/static/samples/sample_crushed.jpg" alt="Defect Box">
+                            <span class="box-caption">Crushed Top-Right Corner (Defect Class: CRUSHED_CORNER)</span>
+                        </div>
+                        <div class="compare-box">
+                            <span class="box-title">GOLDEN STANDARD SOP</span>
+                            <img src="/static/samples/sample_clean.jpg" alt="Golden Box">
+                            <span class="box-caption">WHO Compliant Secondary Shipper</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SUPERVISOR ACTION & E-SIGN -->
+                <div class="glass-card sign-panel">
+                    <div class="card-header">
+                        <h3>✍️ 21 CFR PART 11 SUPERVISOR SIGN-OFF</h3>
+                    </div>
+                    <div class="sign-form">
+                        <label class="form-label">ROOT CAUSE CATEGORY:</label>
+                        <select class="form-select" id="rootCauseSelect">
+                            <option>Operator Technique / Inadequate Cushioning</option>
+                            <option>Transit Shock on Inbound Pallet</option>
+                            <option>Carton Material Defect</option>
+                            <option>False Positive / Acceptable Packaging</option>
+                        </select>
+
+                        <label class="form-label">SUPERVISOR AUDIT NOTES:</label>
+                        <textarea class="form-textarea" id="supNotes" rows="3" placeholder="Enter mandatory corrective rationale for audit trail..."></textarea>
+
+                        <label class="form-label">ELECTRONIC SIGNATURE PIN:</label>
+                        <input type="password" class="form-input" id="supPin" placeholder="••••••••">
+
+                        <div class="sign-actions">
+                            <button class="btn-success" id="btnSupApprove">APPROVE OVERRIDE & SIGN</button>
+                            <button class="btn-danger" id="btnSupReject">CONFIRM REJECT & REPACK</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= VIEW 3: 21 CFR PART 11 AUDIT TRAIL ================= -->
+        <section class="view-panel" id="auditView">
+            <div class="glass-card audit-full-panel">
+                <div class="card-header">
+                    <div class="header-title">
+                        <span class="icon">📜</span>
+                        <h3>IMMUTABLE CRYPTOGRAPHIC AUDIT LOG (SHA-256 CHAIN)</h3>
+                    </div>
+                    <button class="btn-primary" id="btnRefreshAudit">↻ REFRESH AUDIT TRAIL</button>
+                </div>
+                <div class="table-container">
+                    <table class="audit-table">
+                        <thead>
+                            <tr>
+                                <th>BLOCK ID</th>
+                                <th>UTC TIMESTAMP</th>
+                                <th>ACTION</th>
+                                <th>USER BADGE</th>
+                                <th>ROLE</th>
+                                <th>PREVIOUS BLOCK HASH</th>
+                                <th>CURRENT BLOCK HASH</th>
+                                <th>INTEGRITY</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auditTableBody">
+                            <tr>
+                                <td>#001</td>
+                                <td>2026-09-05T05:16:30Z</td>
+                                <td>SYSTEM_INITIALIZE</td>
+                                <td>SYSTEM</td>
+                                <td>ADMIN</td>
+                                <td class="hash">00000000000000000000...</td>
+                                <td class="hash">b3eb7ea32f38a7f45b9e...</td>
+                                <td><span class="badge-valid">VALID ✓</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= VIEW 4: 4-WAY TRADE-OFF & ESG ================= -->
+        <section class="view-panel" id="tradeoffView">
+            <div class="tradeoff-full-layout">
+                <div class="glass-card matrix-detail">
+                    <div class="card-header">
+                        <h3>📊 4-WAY TRADE-OFF MATRIX EXPLORER</h3>
+                        <span class="badge-mini">Cost vs Time vs CO2 vs Reliability</span>
+                    </div>
+                    <div class="radar-placeholder">
+                        <div class="matrix-card-stat">
+                            <h4>💰 FINANCIAL METRIC</h4>
+                            <p>Average packing cost with AI: <strong>$3.50/box</strong> vs Post-Dispatch claim loss: <strong>$145.00/box</strong>.</p>
+                            <p class="stat-highlight">Net Savings: <strong>$137.00 per defect caught pre-dispatch</strong>.</p>
+                        </div>
+                        <div class="matrix-card-stat">
+                            <h4>⏱️ SPEED METRIC</h4>
+                            <p>Computer vision inspection latency: <strong>0.35 seconds</strong> vs Manual physical QA: <strong>14.0 seconds</strong>.</p>
+                            <p class="stat-highlight">Throughput boost: <strong>40x faster verification</strong>.</p>
+                        </div>
+                        <div class="matrix-card-stat">
+                            <h4>🌱 ESG & CARBON METRIC</h4>
+                            <p>Prevented return freight carbon emissions: <strong>6.20 kg CO2e per avoided return shipment</strong>.</p>
+                            <p class="stat-highlight">Reduces warehouse packaging scrap by <strong>82%</strong>.</p>
+                        </div>
+                        <div class="matrix-card-stat">
+                            <h4>🎯 RELIABILITY METRIC</h4>
+                            <p>Pre-dispatch detection reliability: <strong>99.4% escape prevention</strong>.</p>
+                            <p class="stat-highlight">Zero unverified cold-chain boxes leave the dock.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- LIVE NOTIFICATION TOAST -->
+    <div class="toast" id="toastNotification">
+        <span class="toast-icon">ℹ️</span>
+        <span class="toast-text" id="toastText">System initialized</span>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+</html>

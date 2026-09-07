@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: pharmapack-postgres
+    environment:
+      POSTGRES_USER: pharmapack
+      POSTGRES_PASSWORD: pharmapack_secure_pass_2026
+      POSTGRES_DB: pharmapack_qv
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pharmapack -d pharmapack_qv"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: pharmapack-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  minio:
+    image: minio/minio:latest
+    container_name: pharmapack-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: pharmapack_admin
+      MINIO_ROOT_PASSWORD: pharmapack_storage_2026
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
