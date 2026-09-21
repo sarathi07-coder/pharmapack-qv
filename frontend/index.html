@@ -82,6 +82,8 @@
                             <button class="preset-btn" data-preset="sample_crushed.jpg" data-zone="15-25°C" data-defect="CRUSHED_CORNER">Crushed Corner</button>
                             <button class="preset-btn" data-preset="sample_tamper_breach.jpg" data-zone="2-8°C" data-defect="TAPE_BREACH">Tamper Breach</button>
                             <button class="preset-btn" data-preset="sample_missing_ice.jpg" data-zone="2-8°C" data-defect="MISSING_ICE_PACK">Missing Ice Pack</button>
+                            <button class="preset-btn" data-preset="sample_inside_pack.jpg" data-zone="2-8°C" data-defect="COLD_CHAIN_MULTI_VIAL">Cold-Chain Vials</button>
+                            <button class="preset-btn" data-preset="sample_damaged_barcode.jpg" data-zone="15-25°C" data-defect="DAMAGED_BARCODE">Damaged Barcode</button>
                         </div>
                     </div>
 
@@ -235,24 +237,16 @@
                 <div class="glass-card queue-panel">
                     <div class="card-header">
                         <h3>⚠️ PENDING EXCEPTIONS (HITL QUEUE)</h3>
-                        <span class="badge-orange">Action Required</span>
+                        <span class="badge-orange" id="hitlQueueStatus">Live Sync</span>
                     </div>
-                    <div class="exception-list">
-                        <div class="exception-card active">
+                    <div class="exception-list" id="exceptionListContainer">
+                        <div class="exception-card active" data-order="MED-ORD-77412" data-defect="CRUSHED CORNER" data-sample="sample_crushed.jpg">
                             <div class="ex-top">
-                                <span class="ex-order">PH-ORD-9022</span>
+                                <span class="ex-order">MED-ORD-77412</span>
                                 <span class="ex-badge-red">CRUSHED CORNER</span>
                             </div>
-                            <div class="ex-meta">Station 02 | Operator: OP-102 | Zone: 15-25°C</div>
+                            <div class="ex-meta">Station 02 | Operator: OP-103 | Zone: 2-8°C</div>
                             <div class="ex-reason">ISTA-3A Corner crush deformation exceeds 10mm limit.</div>
-                        </div>
-                        <div class="exception-card">
-                            <div class="ex-top">
-                                <span class="ex-order">PH-ORD-9023</span>
-                                <span class="ex-badge-red">TAPE BREACH</span>
-                            </div>
-                            <div class="ex-meta">Station 01 | Operator: OP-101 | Zone: 2-8°C</div>
-                            <div class="ex-reason">Tamper-evident blue seal torn across central seam.</div>
                         </div>
                     </div>
                 </div>
@@ -266,8 +260,8 @@
                     <div class="compare-view">
                         <div class="compare-box">
                             <span class="box-title">CURRENT DEFECTIVE CARTON</span>
-                            <img src="/static/samples/sample_crushed.jpg" alt="Defect Box">
-                            <span class="box-caption">Crushed Top-Right Corner (Defect Class: CRUSHED_CORNER)</span>
+                            <img id="supDefectImg" src="/static/samples/sample_crushed.jpg" alt="Defect Box">
+                            <span class="box-caption" id="supDefectCaption">Crushed Top-Right Corner (Defect Class: CRUSHED_CORNER)</span>
                         </div>
                         <div class="compare-box">
                             <span class="box-title">GOLDEN STANDARD SOP</span>
@@ -283,18 +277,25 @@
                         <h3>✍️ 21 CFR PART 11 SUPERVISOR SIGN-OFF</h3>
                     </div>
                     <div class="sign-form">
+                        <label class="form-label">SELECTED CARTON:</label>
+                        <input type="text" class="form-input" id="supSelectedOrder" value="MED-ORD-77412" readonly style="background: rgba(255,255,255,0.05);">
+
+                        <label class="form-label">SUPERVISOR BADGE ID:</label>
+                        <input type="text" class="form-input" id="supBadgeId" value="SUP-QA-401" placeholder="e.g., SUP-QA-401">
+
                         <label class="form-label">ROOT CAUSE CATEGORY:</label>
                         <select class="form-select" id="rootCauseSelect">
-                            <option>Operator Technique / Inadequate Cushioning</option>
-                            <option>Transit Shock on Inbound Pallet</option>
-                            <option>Carton Material Defect</option>
-                            <option>False Positive / Acceptable Packaging</option>
+                            <option value="ACCEPTABLE_PRINT_SHADOW">Acceptable Print Shadow / Non-structural</option>
+                            <option value="MINOR_SCUFF_NON_BREACH">Minor Outer Scuff (Tape & Seal Intact)</option>
+                            <option value="SEVERE_FLUTING_DAMAGE">Severe Fluting Damage / Structural Collapse</option>
+                            <option value="TAMPER_BREACH_SUSPECTED">Tamper Seal Breach / Chain of Custody Issue</option>
+                            <option value="COLD_CHAIN_TEMPERATURE_EXCURSION">Phase Coolant Missing / Thermal Excursion Risk</option>
                         </select>
 
                         <label class="form-label">SUPERVISOR AUDIT NOTES:</label>
-                        <textarea class="form-textarea" id="supNotes" rows="3" placeholder="Enter mandatory corrective rationale for audit trail..."></textarea>
+                        <textarea class="form-textarea" id="supNotes" rows="3" placeholder="Enter mandatory corrective rationale for audit trail (e.g. Visual verification confirmed cosmetic box scuff only)..."></textarea>
 
-                        <label class="form-label">ELECTRONIC SIGNATURE PIN:</label>
+                        <label class="form-label">ELECTRONIC SIGNATURE PIN (21 CFR Part 11):</label>
                         <input type="password" class="form-input" id="supPin" placeholder="••••••••">
 
                         <div class="sign-actions">
@@ -314,8 +315,12 @@
                         <span class="icon">📜</span>
                         <h3>IMMUTABLE CRYPTOGRAPHIC AUDIT LOG (SHA-256 CHAIN)</h3>
                     </div>
-                    <button class="btn-primary" id="btnRefreshAudit">↻ REFRESH AUDIT TRAIL</button>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn-success" id="btnVerifyChain">🔒 VERIFY CHAIN INTEGRITY</button>
+                        <button class="btn-primary" id="btnRefreshAudit">↻ REFRESH AUDIT TRAIL</button>
+                    </div>
                 </div>
+                <div id="chainIntegrityStatus" style="display: none; padding: 12px 18px; margin-bottom: 16px; border-radius: 8px; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem;"></div>
                 <div class="table-container">
                     <table class="audit-table">
                         <thead>
@@ -333,7 +338,7 @@
                         <tbody id="auditTableBody">
                             <tr>
                                 <td>#001</td>
-                                <td>2026-09-05T05:16:30Z</td>
+                                <td>2026-09-22T00:00:00Z</td>
                                 <td>SYSTEM_INITIALIZE</td>
                                 <td>SYSTEM</td>
                                 <td>ADMIN</td>

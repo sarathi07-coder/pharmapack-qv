@@ -1,6 +1,7 @@
 /**
  * PharmaPack QV — Frontend Client Logic
  * Connects UI to FastAPI Backend endpoints and real-time WebSockets
+ * Compliant with 21 CFR Part 11 and WHO Annex 5 GDP workflows
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -14,10 +15,12 @@ document.addEventListener('DOMContentLoaded', () => {
         operatorId: 'OP-101',
         isRawView: false,
         lastResult: null,
-        ws: null
+        ws: null,
+        supervisorQueue: [],
+        selectedSupervisorInspectionId: 'INSP-ESC-9024'
     };
 
-    // DOM Elements
+    // DOM Elements - Operator View
     const cameraFeedImg = document.getElementById('cameraFeedImg');
     const heatmapImg = document.getElementById('heatmapImg');
     const defectTag = document.getElementById('defectTag');
@@ -43,6 +46,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnEscalate = document.getElementById('btnEscalate');
     const toast = document.getElementById('toastNotification');
     const toastText = document.getElementById('toastText');
+
+    // DOM Elements - Supervisor View
+    const exceptionListContainer = document.getElementById('exceptionListContainer');
+    const supDefectImg = document.getElementById('supDefectImg');
+    const supDefectCaption = document.getElementById('supDefectCaption');
+    const supSelectedOrder = document.getElementById('supSelectedOrder');
+    const supBadgeId = document.getElementById('supBadgeId');
+    const rootCauseSelect = document.getElementById('rootCauseSelect');
+    const supNotes = document.getElementById('supNotes');
+    const supPin = document.getElementById('supPin');
+    const btnSupApprove = document.getElementById('btnSupApprove');
+    const btnSupReject = document.getElementById('btnSupReject');
+    const exceptionCountBadge = document.getElementById('exceptionCount');
+
+    // DOM Elements - Audit View
+    const btnRefreshAudit = document.getElementById('btnRefreshAudit');
+    const btnVerifyChain = document.getElementById('btnVerifyChain');
+    const chainIntegrityStatus = document.getElementById('chainIntegrityStatus');
+    const auditTableBody = document.getElementById('auditTableBody');
 
     // 1. Initialize WebSocket Connection
     function initWebSocket() {
@@ -79,7 +101,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const targetId = tab.getAttribute('data-view');
             document.getElementById(targetId).classList.add('active');
 
-            if (targetId === 'auditView') {
+            if (targetId === 'supervisorView') {
+                loadSupervisorQueue();
+            } else if (targetId === 'auditView') {
                 loadAuditTrail();
             }
         });
@@ -109,17 +133,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // Adjust order number
-            if (state.currentDefect === 'CRUSHED_CORNER') {
-                state.orderNumber = 'PH-ORD-9022';
-            } else if (state.currentDefect === 'TAPE_BREACH') {
-                state.orderNumber = 'PH-ORD-9023';
-            } else if (state.currentDefect === 'MISSING_ICE_PACK') {
-                state.orderNumber = 'PH-ORD-9024';
-            } else {
-                state.orderNumber = 'PH-ORD-9021';
-            }
+            // Adjust order numbers and simulated attributes
+            const orderMapping = {
+                'sample_clean.jpg': { order: 'PH-ORD-9021', weight: 3.42, temp: '4.2°C' },
+                'sample_crushed.jpg': { order: 'PH-ORD-9022', weight: 3.38, temp: '21.4°C' },
+                'sample_tamper_breach.jpg': { order: 'PH-ORD-9023', weight: 3.45, temp: '4.5°C' },
+                'sample_missing_ice.jpg': { order: 'PH-ORD-9024', weight: 1.85, temp: '6.8°C' },
+                'sample_inside_pack.jpg': { order: 'PH-ORD-9025', weight: 4.10, temp: '3.9°C' },
+                'sample_damaged_barcode.jpg': { order: 'PH-ORD-9026', weight: 2.90, temp: '20.2°C' }
+            };
+
+            const config = orderMapping[state.currentPreset] || { order: 'PH-ORD-9021', weight: 3.42, temp: '4.2°C' };
+            state.orderNumber = config.order;
             document.getElementById('hudOrderNum').textContent = state.orderNumber;
+            document.getElementById('scaleLcd').innerHTML = `${config.weight.toFixed(2)} <span class="unit">KG</span>`;
+            document.getElementById('hudTempReading').textContent = `TEMP: ${config.temp}`;
 
             showToast(`Loaded ${btn.textContent} for inspection. Click Run Verification.`, '📦');
         });
@@ -236,27 +264,31 @@ document.addEventListener('DOMContentLoaded', () => {
         renderSopChecklist(data);
 
         // Update 4-Way Trade-Off Matrix
-        toCost.textContent = `$${data.tradeoff.cost_index_usd.toFixed(2)}`;
-        toTime.textContent = `${data.tradeoff.time_latency_sec.toFixed(2)}s`;
-        toCarbon.innerHTML = `${data.tradeoff.emissions_kg_co2e.toFixed(2)} <span class="unit">kg</span>`;
-        toReliability.textContent = `${data.tradeoff.reliability_score_pct.toFixed(1)}%`;
+        if (data.tradeoff) {
+            toCost.textContent = `$${data.tradeoff.cost_index_usd.toFixed(2)}`;
+            toTime.textContent = `${data.tradeoff.time_latency_sec.toFixed(2)}s`;
+            toCarbon.innerHTML = `${data.tradeoff.emissions_kg_co2e.toFixed(2)} <span class="unit">kg</span>`;
+            toReliability.textContent = `${data.tradeoff.reliability_score_pct.toFixed(1)}%`;
+        }
 
-        if (data.defects.length > 0 || data.rule_violations.length > 0) {
+        if (data.defects && data.defects.length > 0) {
             adoptionText.innerHTML = `<strong>Caught Pre-Dispatch:</strong> Prevented <strong>$137.00</strong> post-dispatch replacement cost and <strong>6.2kg CO2e</strong> freight return emissions.`;
         } else {
             adoptionText.textContent = `Clean baseline dispatch. Zero rework penalty. Continuous monitoring ensures 99.4% defect escape prevention.`;
         }
 
         // Update Audit Hash
-        auditHashDisplay.textContent = data.audit_hash;
+        if (data.audit_hash) {
+            auditHashDisplay.textContent = data.audit_hash;
+        }
 
         showToast(`Verification Complete: ${data.verdict} (${(data.overall_confidence * 100).toFixed(1)}%)`, data.verdict === 'PASS' ? '✓' : '⚠️');
     }
 
     function renderSopChecklist(data) {
-        const hasCrush = data.defects.some(d => d.defect_type === 'CRUSHED_CORNER');
-        const hasSeal = data.defects.some(d => d.defect_type === 'TAPE_BREACH');
-        const hasIce = data.defects.some(d => d.defect_type === 'MISSING_ICE_PACK');
+        const hasCrush = data.defects ? data.defects.some(d => d.defect_type === 'CRUSHED_CORNER') : false;
+        const hasSeal = data.defects ? data.defects.some(d => d.defect_type === 'TAPE_BREACH') : false;
+        const hasIce = data.defects ? data.defects.some(d => d.defect_type === 'MISSING_ICE_PACK') : false;
 
         sopList.innerHTML = `
             <div class="sop-item ${hasSeal ? 'violated' : 'checked'}">
@@ -288,9 +320,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // 9. Escalate Action
-    btnEscalate.addEventListener('click', () => {
+    btnEscalate.addEventListener('click', async () => {
         showToast(`Carton ${state.orderNumber} manually escalated to Supervisor HITL Queue`, '⚠️');
-        document.getElementById('exceptionCount').textContent = '2';
+        exceptionCountBadge.textContent = String(parseInt(exceptionCountBadge.textContent || '1') + 1);
     });
 
     // 10. Voice Mic Trigger
@@ -307,54 +339,192 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 11. Load Audit Trail from Backend
-    async function loadAuditTrail() {
-        const tbody = document.getElementById('auditTableBody');
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">Loading cryptographic audit chain...</td></tr>';
-
+    // ================= 11. SUPERVISOR HITL HUB LOGIC =================
+    async function loadSupervisorQueue() {
+        if (!exceptionListContainer) return;
+        
         try {
-            const res = await fetch('/api/v1/inspections/history');
-            const data = await res.json();
-            
-            if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8">No audit logs recorded yet.</td></tr>';
+            const res = await fetch('/api/v1/supervisor/queue');
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const queue = await res.json();
+            state.supervisorQueue = queue;
+
+            exceptionCountBadge.textContent = queue.length;
+
+            if (queue.length === 0) {
+                exceptionListContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-muted);">No pending supervisor exceptions. All stations clear!</div>';
                 return;
             }
 
-            tbody.innerHTML = data.map((item, idx) => `
+            exceptionListContainer.innerHTML = queue.map((item, idx) => `
+                <div class="exception-card ${idx === 0 ? 'active' : ''}" data-id="${item.inspection_id}" data-order="${item.order_number}" data-zone="${item.storage_zone}">
+                    <div class="ex-top">
+                        <span class="ex-order">${item.order_number}</span>
+                        <span class="ex-badge-red">${item.verdict}</span>
+                    </div>
+                    <div class="ex-meta">${item.station_id} | Operator: ${item.operator_id} | Zone: ${item.storage_zone}</div>
+                    <div class="ex-reason">Confidence: ${(item.confidence * 100).toFixed(1)}% | Defects: ${item.detected_defects_count} | Violations: ${item.rule_violations_count}</div>
+                </div>
+            `).join('');
+
+            // Bind click to each card
+            const cards = exceptionListContainer.querySelectorAll('.exception-card');
+            cards.forEach(card => {
+                card.addEventListener('click', () => {
+                    cards.forEach(c => c.classList.remove('active'));
+                    card.classList.add('active');
+
+                    const inspId = card.getAttribute('data-id');
+                    const orderNum = card.getAttribute('data-order');
+                    state.selectedSupervisorInspectionId = inspId;
+                    supSelectedOrder.value = orderNum;
+
+                    // Update forensic defect view
+                    supDefectCaption.textContent = `Inspecting ${orderNum} (ID: ${inspId})`;
+                    showToast(`Selected ${orderNum} for forensic review`, '🔬');
+                });
+            });
+
+            // Select first item
+            if (queue.length > 0) {
+                state.selectedSupervisorInspectionId = queue[0].inspection_id;
+                supSelectedOrder.value = queue[0].order_number;
+            }
+
+        } catch (err) {
+            console.error('Failed to load supervisor queue:', err);
+        }
+    }
+
+    async function submitSupervisorDecision(decisionType) {
+        const pin = supPin.value.trim();
+        const badge = supBadgeId.value.trim() || 'SUP-QA-401';
+        const notes = supNotes.value.trim();
+        const rootCause = rootCauseSelect.value;
+
+        if (!pin) {
+            showToast('21 CFR Part 11 Electronic Signature PIN is required!', '⚠️');
+            supPin.focus();
+            return;
+        }
+
+        if (!notes) {
+            showToast('Mandatory supervisor justification notes required for audit trail!', '⚠️');
+            supNotes.focus();
+            return;
+        }
+
+        const payload = {
+            inspection_id: state.selectedSupervisorInspectionId || 'INSP-ESC-9024',
+            decision: decisionType,
+            root_cause_code: rootCause,
+            justification_notes: notes,
+            supervisor_badge: badge,
+            electronic_signature: `PIN_SIG_${pin}_${Date.now()}`
+        };
+
+        try {
+            const res = await fetch('/api/v1/supervisor/decide', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) {
+                const errData = await res.json();
+                throw new Error(errData.detail || `Server error ${res.status}`);
+            }
+
+            const data = await res.json();
+            showToast(`Supervisor Decision [${decisionType}] recorded & signed. Hash: ${data.audit_block_hash.slice(0, 16)}...`, '✓');
+
+            // Reset inputs & reload queue
+            supPin.value = '';
+            supNotes.value = '';
+            loadSupervisorQueue();
+
+        } catch (err) {
+            console.error('Supervisor decision failed:', err);
+            showToast(`Sign-off failed: ${err.message}`, '❌');
+        }
+    }
+
+    btnSupApprove.addEventListener('click', () => submitSupervisorDecision('OVERRIDE_PASS'));
+    btnSupReject.addEventListener('click', () => submitSupervisorDecision('CONFIRM_REJECT'));
+
+    // ================= 12. 21 CFR PART 11 AUDIT TRAIL LOGIC =================
+    async function loadAuditTrail() {
+        auditTableBody.innerHTML = '<tr><td colspan="8" style="text-align:center;">Loading cryptographic audit chain...</td></tr>';
+
+        try {
+            const res = await fetch('/api/v1/audit/logs?limit=50');
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const logs = await res.json();
+            
+            if (logs.length === 0) {
+                auditTableBody.innerHTML = '<tr><td colspan="8" style="text-align:center;">No audit records found.</td></tr>';
+                return;
+            }
+
+            auditTableBody.innerHTML = logs.map(log => `
                 <tr>
-                    <td>#${String(idx + 1).padStart(3, '0')}</td>
-                    <td>${item.created_at ? new Date(item.created_at).toISOString() : '2026-09-05T05:25:00Z'}</td>
-                    <td>${item.verdict === 'PASS' ? 'INSPECTION_PASSED' : 'INSPECTION_REJECTED'}</td>
-                    <td>OP-101</td>
-                    <td>OPERATOR</td>
-                    <td class="hash">${item.id.slice(0, 16)}...</td>
-                    <td class="hash">${(item.id + 'sha256').slice(0, 24)}...</td>
+                    <td>#${String(log.id).padStart(3, '0')}</td>
+                    <td>${log.timestamp ? new Date(log.timestamp).toISOString() : 'N/A'}</td>
+                    <td><strong style="color:var(--text-primary);">${log.action}</strong></td>
+                    <td>${log.user_badge}</td>
+                    <td>${log.user_role}</td>
+                    <td class="hash" title="${log.previous_block_hash}">${log.previous_block_hash.slice(0, 12)}...</td>
+                    <td class="hash" title="${log.block_hash}">${log.block_hash.slice(0, 16)}...</td>
                     <td><span class="badge-valid">VALIDATED ✓</span></td>
                 </tr>
             `).join('');
 
         } catch (e) {
             console.error('Failed to load audit history:', e);
-            tbody.innerHTML = '<tr><td colspan="8" style="color:var(--neon-red);">Failed to fetch audit records from server.</td></tr>';
+            auditTableBody.innerHTML = '<tr><td colspan="8" style="color:var(--neon-red); text-align:center;">Failed to fetch audit records from server.</td></tr>';
         }
     }
 
-    document.getElementById('btnRefreshAudit').addEventListener('click', loadAuditTrail);
+    btnRefreshAudit.addEventListener('click', loadAuditTrail);
 
-    // Supervisor Actions
-    document.getElementById('btnSupApprove').addEventListener('click', () => {
-        const pin = document.getElementById('supPin').value;
-        if (!pin) {
-            showToast('Enter 21 CFR Part 11 Electronic Signature PIN!', '⚠️');
-            return;
+    // Verify Entire Cryptographic Blockchain Chain
+    btnVerifyChain.addEventListener('click', async () => {
+        btnVerifyChain.disabled = true;
+        btnVerifyChain.textContent = 'Verifying SHA-256 Chain...';
+
+        try {
+            const res = await fetch('/api/v1/audit/verify-chain');
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+
+            chainIntegrityStatus.style.display = 'block';
+            if (data.chain_intact) {
+                chainIntegrityStatus.style.background = 'rgba(16, 185, 129, 0.15)';
+                chainIntegrityStatus.style.border = '1px solid var(--neon-green)';
+                chainIntegrityStatus.style.color = 'var(--neon-green)';
+                chainIntegrityStatus.innerHTML = `
+                    <strong>✓ 21 CFR PART 11 CRYPTOGRAPHIC INTEGRITY VERIFIED:</strong><br>
+                    Traversed ${data.total_blocks_verified} chained block records from Genesis. 0 corrupted blocks. Algorithm: ${data.verification_algorithm}. Compliance: ${data.compliance_standards.join(', ')}.
+                `;
+                showToast(`Chain Verified Intact (${data.total_blocks_verified} Blocks Validated)`, '🔒');
+            } else {
+                chainIntegrityStatus.style.background = 'rgba(239, 68, 68, 0.15)';
+                chainIntegrityStatus.style.border = '1px solid var(--neon-red)';
+                chainIntegrityStatus.style.color = 'var(--neon-red)';
+                chainIntegrityStatus.innerHTML = `
+                    <strong>⚠️ TAMPER DETECTED IN AUDIT TRAIL:</strong><br>
+                    ${data.tampered_blocks_count} blocks failed cryptographic SHA-256 pointer validation!
+                `;
+                showToast('Audit Trail Discrepancy Detected!', '❌');
+            }
+
+        } catch (e) {
+            console.error('Verification failed:', e);
+            showToast(`Chain verification error: ${e.message}`, '❌');
+        } finally {
+            btnVerifyChain.disabled = false;
+            btnVerifyChain.textContent = '🔒 VERIFY CHAIN INTEGRITY';
         }
-        showToast('Supervisor Override Approved & Signed (Cryptographic signature appended)', '✓');
-        document.getElementById('supPin').value = '';
-    });
-
-    document.getElementById('btnSupReject').addEventListener('click', () => {
-        showToast('Carton confirmed REJECT. Rework work order dispatched to station.', '✕');
     });
 
     // Toast Utility

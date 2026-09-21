@@ -1,0 +1,50 @@
+[
+  {
+    "scenario": "0% Cloud Drops (Optimal Network)",
+    "total_inspections": 20,
+    "cloud_executions": 2,
+    "offline_fallback_executions": 18,
+    "fallback_rate_pct": 90.0,
+    "avg_latency_ms": 1242.34,
+    "p95_latency_ms": 4147.75,
+    "throughput_fps": 0.8,
+    "ram_usage_mb": 123.1,
+    "zero_downtime_guarantee": "100% (No Dropped Inspections)"
+  },
+  {
+    "scenario": "25% Packet Drops (Intermittent WiFi)",
+    "total_inspections": 20,
+    "cloud_executions": 0,
+    "offline_fallback_executions": 20,
+    "fallback_rate_pct": 100.0,
+    "avg_latency_ms": 131.98,
+    "p95_latency_ms": 133.31,
+    "throughput_fps": 7.6,
+    "ram_usage_mb": 84.5,
+    "zero_downtime_guarantee": "100% (No Dropped Inspections)"
+  },
+  {
+    "scenario": "50% Heavy Congestion / Rate-Limit",
+    "total_inspections": 20,
+    "cloud_executions": 1,
+    "offline_fallback_executions": 19,
+    "fallback_rate_pct": 95.0,
+    "avg_latency_ms": 399.47,
+    "p95_latency_ms": 3362.25,
+    "throughput_fps": 2.5,
+    "ram_usage_mb": 106.9,
+    "zero_downtime_guarantee": "100% (No Dropped Inspections)"
+  },
+  {
+    "scenario": "100% Total Blackout (Offline Edge)",
+    "total_inspections": 20,
+    "cloud_executions": 0,
+    "offline_fallback_executions": 20,
+    "fallback_rate_pct": 100.0,
+    "avg_latency_ms": 4.29,
+    "p95_latency_ms": 5.05,
+    "throughput_fps": 232.0,
+    "ram_usage_mb": 119.8,
+    "zero_downtime_guarantee": "100% (No Dropped Inspections)"
+  }
+]
