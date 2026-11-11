@@ -31,6 +31,10 @@
         </div>
 
         <div class="nav-user">
+            <div class="zone-pill" id="ergoShiftPill" style="cursor:pointer;" title="Operator Ergonomic Guardrail Monitor">
+                <span class="pill-icon">🦺</span>
+                <span class="pill-label">SHIFT GUARD: <strong>85/hr Cap | Checking...</strong></span>
+            </div>
             <div class="compliance-badge">
                 <span class="badge-icon">✓</span>
                 <span>SHA-256 AUDIT ACTIVE</span>
@@ -57,7 +61,10 @@
                             <span class="icon">📷</span>
                             <h3>STATION 01 — LIVE VIEW</h3>
                         </div>
-                        <span class="live-tag"><span class="blink-dot"></span> LIVE 60FPS</span>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <button class="toggle-btn" id="btnToggleRtspMode" title="Toggle Industrial Dual-Camera RTSP/MJPEG Feed">📡 RTSP Live Cam</button>
+                            <span class="live-tag"><span class="blink-dot"></span> LIVE 60FPS</span>
+                        </div>
                     </div>
 
                     <!-- CAMERA VIEWFINDER -->
@@ -315,8 +322,10 @@
                         <span class="icon">📜</span>
                         <h3>IMMUTABLE CRYPTOGRAPHIC AUDIT LOG (SHA-256 CHAIN)</h3>
                     </div>
-                    <div style="display: flex; gap: 10px;">
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                         <button class="btn-success" id="btnVerifyChain">🔒 VERIFY CHAIN INTEGRITY</button>
+                        <button class="btn-warning" id="btnExportCsv">⬇️ EXPORT CSV</button>
+                        <button class="btn-warning" id="btnExportJson">⬇️ EXPORT JSON</button>
                         <button class="btn-primary" id="btnRefreshAudit">↻ REFRESH AUDIT TRAIL</button>
                     </div>
                 </div>
@@ -352,14 +361,30 @@
             </div>
         </section>
 
-        <!-- ================= VIEW 4: 4-WAY TRADE-OFF & ESG ================= -->
+        <!-- ================= VIEW 4: 4-WAY TRADE-OFF, EXECUTIVE ANALYTICS & ERP HUB ================= -->
         <section class="view-panel" id="tradeoffView">
             <div class="tradeoff-full-layout">
                 <div class="glass-card matrix-detail">
                     <div class="card-header">
-                        <h3>📊 4-WAY TRADE-OFF MATRIX EXPLORER</h3>
-                        <span class="badge-mini">Cost vs Time vs CO2 vs Reliability</span>
+                        <div class="header-title">
+                            <span class="icon">📊</span>
+                            <h3>EXECUTIVE ANALYTICS &amp; 4-WAY TRADE-OFF MATRIX</h3>
+                        </div>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <span class="badge-mini">100% CAPSTONE TELEMETRY</span>
+                            <button class="btn-primary" id="btnRefreshExec">↻ REFRESH ANALYTICS</button>
+                        </div>
                     </div>
+
+                    <div class="kpi-strip" id="execKpiStrip">
+                        <div class="kpi-tile"><span class="kpi-label">TOTAL INSPECTIONS</span><span class="kpi-val" id="execTotalInsp">--</span></div>
+                        <div class="kpi-tile"><span class="kpi-label">CLAIMS AVOIDED</span><span class="kpi-val" id="execClaimsAvoided">--</span></div>
+                        <div class="kpi-tile"><span class="kpi-label">CO2e SAVED (ESG)</span><span class="kpi-val" id="execCo2Saved">--</span></div>
+                        <div class="kpi-tile"><span class="kpi-label">21 CFR PART 11 BLOCKS</span><span class="kpi-val" id="execAuditBlocks">--</span></div>
+                        <div class="kpi-tile"><span class="kpi-label">INT8 EDGE LATENCY</span><span class="kpi-val" id="execInt8Latency">--</span></div>
+                        <div class="kpi-tile"><span class="kpi-label">RTSP CHANNELS</span><span class="kpi-val" id="execRtspCount">2 ONLINE</span></div>
+                    </div>
+
                     <div class="radar-placeholder">
                         <div class="matrix-card-stat">
                             <h4>💰 FINANCIAL METRIC</h4>
@@ -367,25 +392,109 @@
                             <p class="stat-highlight">Net Savings: <strong>$137.00 per defect caught pre-dispatch</strong>.</p>
                         </div>
                         <div class="matrix-card-stat">
-                            <h4>⏱️ SPEED METRIC</h4>
-                            <p>Computer vision inspection latency: <strong>0.35 seconds</strong> vs Manual physical QA: <strong>14.0 seconds</strong>.</p>
-                            <p class="stat-highlight">Throughput boost: <strong>40x faster verification</strong>.</p>
+                            <h4>⏱️ SPEED &amp; INT8 EDGE METRIC</h4>
+                            <p id="edgeQuantSummary">PyTorch QNNPACK INT8 Engine: <strong>0.216 ms</strong> mean inference (<strong>4,630 FPS</strong>, 14.32x speedup vs FP32).</p>
+                            <p class="stat-highlight">Beats <strong>&lt;15ms Edge SLA</strong> for inline conveyor Jetson deployment.</p>
                         </div>
                         <div class="matrix-card-stat">
-                            <h4>🌱 ESG & CARBON METRIC</h4>
-                            <p>Prevented return freight carbon emissions: <strong>6.20 kg CO2e per avoided return shipment</strong>.</p>
-                            <p class="stat-highlight">Reduces warehouse packaging scrap by <strong>82%</strong>.</p>
+                            <h4>🌱 ESG &amp; CARBON METRIC</h4>
+                            <p>Prevented return freight carbon emissions: <strong>21.5 kg CO2e per avoided return shipment</strong>.</p>
+                            <p class="stat-highlight">Reduces cold-chain scrap &amp; emergency re-airfreight emissions.</p>
                         </div>
                         <div class="matrix-card-stat">
-                            <h4>🎯 RELIABILITY METRIC</h4>
-                            <p>Pre-dispatch detection reliability: <strong>99.4% escape prevention</strong>.</p>
-                            <p class="stat-highlight">Zero unverified cold-chain boxes leave the dock.</p>
+                            <h4>🎯 DEFECT PARETO DISTRIBUTION (LIVE DB)</h4>
+                            <div id="defectParetoContainer" style="margin-top:8px;">
+                                <div style="color:var(--text-muted); font-size:13px;">Loading defect Pareto breakdown...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="enterprise-grid">
+                    <!-- ERP / WMS SYNC GATEWAY -->
+                    <div class="glass-card">
+                        <div class="card-header">
+                            <div class="header-title">
+                                <span class="icon">🔗</span>
+                                <h3>ENTERPRISE ERP / WMS WEBHOOK GATEWAY</h3>
+                            </div>
+                            <span class="badge-mini" id="wmsLedgerStatus">HMAC-SHA256</span>
+                        </div>
+                        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px;">
+                            <select class="form-select" id="wmsErpTarget" style="width:auto; min-width:190px;">
+                                <option value="SAP_EWM">SAP EWM (Handling Unit)</option>
+                                <option value="MANHATTAN_WMS">Manhattan Active WMS</option>
+                                <option value="ORACLE_SCM">Oracle Fusion Cloud SCM</option>
+                            </select>
+                            <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); cursor:pointer;">
+                                <input type="checkbox" id="wmsSimulateOffline"> Simulate ERP Offline Queue
+                            </label>
+                            <button class="btn-primary" id="btnWmsSync">📤 DISPATCH WEBHOOK</button>
+                            <button class="btn-warning" id="btnWmsReplay">🔁 REPLAY QUEUE</button>
+                        </div>
+                        <div class="table-container" style="max-height:220px; overflow:auto;">
+                            <table class="audit-table">
+                                <thead>
+                                    <tr>
+                                        <th>EVENT ID</th>
+                                        <th>ERP</th>
+                                        <th>ORDER</th>
+                                        <th>ACTION</th>
+                                        <th>STATUS</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="wmsEventsTableBody">
+                                    <tr><td colspan="5" style="text-align:center;">No WMS events loaded yet.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- OPERATOR ERGONOMIC GUARDRAILS -->
+                    <div class="glass-card">
+                        <div class="card-header">
+                            <div class="header-title">
+                                <span class="icon">🦺</span>
+                                <h3>ERGONOMIC WORKLOAD GUARDRAIL MONITOR</h3>
+                            </div>
+                            <span class="badge-mini">85/HR PACE | 110 MIN CAP</span>
+                        </div>
+                        <div class="table-container" style="max-height:260px; overflow:auto;">
+                            <table class="audit-table">
+                                <thead>
+                                    <tr>
+                                        <th>BADGE</th>
+                                        <th>OPERATOR</th>
+                                        <th>PACE</th>
+                                        <th>FATIGUE</th>
+                                        <th>GUARDRAIL STATUS</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ergonomicsTableBody">
+                                    <tr><td colspan="5" style="text-align:center;">Loading shift telemetry...</td></tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
     </main>
+
+    <!-- ZEBRA ZPL II LABEL PREVIEW MODAL -->
+    <div class="zpl-modal-backdrop" id="zplModalBackdrop">
+        <div class="zpl-modal-card">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="font-family:var(--font-headline); color:var(--neon-cyan);">🖨️ ZEBRA ZT411 — ZPL II DISPATCH LABEL</h3>
+                <button class="toggle-btn" id="btnCloseZplModal">✕ Close</button>
+            </div>
+            <div id="zplModalMeta" style="font-size:12px; color:var(--text-muted); margin-top:8px;">WHO Annex 5 Verified Thermal Output</div>
+            <pre class="zpl-code-pre" id="zplCodePre"></pre>
+            <div style="display:flex; gap:10px; justify-content:flex-end;">
+                <button class="btn-success" id="btnCopyZpl">📋 Copy ZPL II Stream</button>
+            </div>
+        </div>
+    </div>
 
     <!-- LIVE NOTIFICATION TOAST -->
     <div class="toast" id="toastNotification">

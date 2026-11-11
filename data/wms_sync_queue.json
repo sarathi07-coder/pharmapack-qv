@@ -1,0 +1,70 @@
+{
+  "synced_events": [
+    {
+      "event_id": "WMS-52AB0EA322",
+      "erp_target": "SAP_EWM",
+      "endpoint": "https://erp-sandbox.internal/sap/ewm/v1/handling-unit-decision",
+      "order_number": "PH-ORD-9021",
+      "inspection_id": "INSP-WMS-TEST",
+      "verdict": "PASS",
+      "wms_action": "RELEASE_FOR_MANIFEST",
+      "hmac_signature": "7c0a12f409ddadffb2632fbf1238661f65dc6510629c558b5fdc5cf61f0c1684",
+      "timestamp_utc": "2026-11-11T17:19:29.246756+00:00",
+      "status": "REPLAYED_200_OK",
+      "replayed_at_utc": "2026-11-11T17:19:29.252855+00:00"
+    },
+    {
+      "event_id": "WMS-FED6E4BCEB",
+      "erp_target": "SAP_EWM",
+      "endpoint": "https://erp-sandbox.internal/sap/ewm/v1/handling-unit-decision",
+      "order_number": "PH-ORD-9021",
+      "inspection_id": "INSP-WMS-TEST",
+      "verdict": "PASS",
+      "wms_action": "RELEASE_FOR_MANIFEST",
+      "hmac_signature": "8a618e72bc9c96c1a1a5a2bc0c2fcbd4b66f493538db8be3e6ec7800a1f458e5",
+      "timestamp_utc": "2026-11-11T17:22:36.281987+00:00",
+      "status": "REPLAYED_200_OK",
+      "replayed_at_utc": "2026-11-11T17:22:36.286465+00:00"
+    },
+    {
+      "event_id": "WMS-D99C9192B8",
+      "erp_target": "SAP_EWM",
+      "endpoint": "https://erp-sandbox.internal/sap/ewm/v1/handling-unit-decision",
+      "order_number": "PH-ORD-9021",
+      "inspection_id": "INSP-WMS-TEST",
+      "verdict": "PASS",
+      "wms_action": "RELEASE_FOR_MANIFEST",
+      "hmac_signature": "42e55dbf9a2773ff6859eb2969e1b0202b1c8ec6d698986d4959570daea12ea7",
+      "timestamp_utc": "2026-11-11T17:25:44.907324+00:00",
+      "status": "REPLAYED_200_OK",
+      "replayed_at_utc": "2026-11-11T17:25:44.912926+00:00"
+    },
+    {
+      "event_id": "WMS-81CC111BC1",
+      "erp_target": "SAP_EWM",
+      "endpoint": "https://erp-sandbox.internal/sap/ewm/v1/handling-unit-decision",
+      "order_number": "PH-ORD-9021",
+      "inspection_id": "INSP-WMS-TEST",
+      "verdict": "PASS",
+      "wms_action": "RELEASE_FOR_MANIFEST",
+      "hmac_signature": "2a5998343f9e5bb1eee7b89fa0af7e5ff52509f872c42b7e51ab52d3df5999c6",
+      "timestamp_utc": "2026-11-11T17:32:13.345261+00:00",
+      "status": "REPLAYED_200_OK",
+      "replayed_at_utc": "2026-11-11T17:32:13.354525+00:00"
+    },
+    {
+      "event_id": "WMS-696CFF7B75",
+      "erp_target": "SAP_EWM",
+      "endpoint": "https://erp-sandbox.internal/sap/ewm/v1/handling-unit-decision",
+      "order_number": "PH-ORD-9021",
+      "inspection_id": "INSP-WMS-TEST",
+      "verdict": "PASS",
+      "wms_action": "RELEASE_FOR_MANIFEST",
+      "hmac_signature": "274d65efc5d06e003f490c1788e0858a01dda65b8dc23eb1d3fc5a603c7f6f07",
+      "timestamp_utc": "2026-11-11T17:39:42.254530+00:00",
+      "status": "REPLAYED_200_OK",
+      "replayed_at_utc": "2026-11-11T17:39:42.261972+00:00"
+    }
+  ],
+  "queued_retries": []
+}

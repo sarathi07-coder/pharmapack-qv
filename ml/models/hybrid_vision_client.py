@@ -19,6 +19,11 @@ except ImportError:
     except Exception:
         RoboflowWorkflowClient = None
 
+try:
+    from ml.export.tensorrt_optimizer import EdgeNeuralInferenceEngine
+except Exception:
+    EdgeNeuralInferenceEngine = None
+
 logger = logging.getLogger(__name__)
 
 class CircuitState(str, Enum):
@@ -55,6 +60,14 @@ class HybridVisionClient:
         self.cloud_success_count: int = 0
         self.fallback_count: int = 0
         self._force_offline: bool = False
+
+        # Tier 2B: Quantized INT8 Neural Edge Classifier (<15ms SLA)
+        self.edge_neural_engine = None
+        if EdgeNeuralInferenceEngine is not None:
+            try:
+                self.edge_neural_engine = EdgeNeuralInferenceEngine()
+            except Exception as e:
+                logger.warning(f"⚠️ EdgeNeuralInferenceEngine init skipped: {e}")
 
         # Initialize Roboflow client
         self.roboflow_client = None
@@ -135,9 +148,28 @@ class HybridVisionClient:
                     self.state = CircuitState.OPEN
                     logger.error("🛑 Circuit Breaker tripped to OPEN! Diverting to offline edge vision.")
 
-        # Execute Tier 2: Offline Edge Vision Fallback
+        # Execute Tier 2: Offline Edge Vision Fallback (CV Heuristics + INT8 Neural EdgeNet)
         self.fallback_count += 1
         defects = self._offline_edge_predict(image)
+        neural_pred = (
+            self.edge_neural_engine.predict(image)
+            if self.edge_neural_engine and self.edge_neural_engine.is_ready()
+            else {"available": False, "engine_mode": "UNAVAILABLE", "latency_ms": 0.0}
+        )
+        if (
+            not defects
+            and neural_pred.get("available")
+            and neural_pred.get("predicted_class") not in (None, "CLEAN", "UNKNOWN")
+            and float(neural_pred.get("confidence", 0.0)) >= 0.90
+        ):
+            defects.append({
+                "defect_type": neural_pred["predicted_class"],
+                "confidence": neural_pred["confidence"],
+                "severity": "CRITICAL" if neural_pred["predicted_class"] in ("TAPE_BREACH", "MISSING_ICE_PACK") else "HIGH",
+                "bbox": {"x": 0.15, "y": 0.15, "width": 0.70, "height": 0.70},
+                "description": f"Quantized INT8 PharmaEdgeNet detected {neural_pred['predicted_class']} ({neural_pred['latency_ms']}ms)."
+            })
+
         t_end = time.perf_counter()
         latency_ms = round((t_end - t_start) * 1000, 2)
 
@@ -146,7 +178,8 @@ class HybridVisionClient:
             "source": "OFFLINE_EDGE_FALLBACK",
             "latency_ms": latency_ms,
             "circuit_state": self.state.value,
-            "confidence_avg": round(np.mean([d["confidence"] for d in defects]), 3) if defects else 0.965
+            "confidence_avg": round(np.mean([d["confidence"] for d in defects]), 3) if defects else 0.965,
+            "neural_edge": neural_pred,
         }
 
     def _offline_edge_predict(self, image: Image.Image) -> List[Dict[str, Any]]:
@@ -229,11 +262,14 @@ class HybridVisionClient:
     def get_telemetry(self) -> Dict[str, Any]:
         """Returns runtime resilience and availability metrics."""
         availability_pct = round((self.cloud_success_count / max(self.total_requests, 1)) * 100, 2)
+        edge_ready = bool(self.edge_neural_engine and self.edge_neural_engine.is_ready())
         return {
             "circuit_state": self.state.value,
             "total_inspections": self.total_requests,
             "cloud_success_count": self.cloud_success_count,
             "offline_fallback_count": self.fallback_count,
             "cloud_availability_pct": availability_pct,
+            "neural_edge_engine": self.edge_neural_engine.engine_mode if edge_ready else "HEURISTIC_ONLY",
+            "sub_15ms_int8_ready": edge_ready,
             "resilience_sla": "99.99% Guaranteed Inspection Continuity"
         }

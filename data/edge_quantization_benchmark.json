@@ -1,0 +1,35 @@
+{
+  "model_architecture": "PharmaEdgeNet (Depthwise-Separable Edge CNN)",
+  "dataset_size": 300,
+  "classes": [
+    "CLEAN",
+    "CRUSHED_CORNER",
+    "TAPE_BREACH",
+    "LABEL_OBSCURED",
+    "MISSING_ICE_PACK"
+  ],
+  "quantization_backend": "torch.ao.quantization (qnnpack INT8)",
+  "fp32_cpu": {
+    "mean_latency_ms": 3.094,
+    "p95_latency_ms": 3.24,
+    "throughput_fps": 323.2,
+    "accuracy_pct": 100.0,
+    "artifact_size_kb": 203.27
+  },
+  "int8_quantized_cpu": {
+    "mean_latency_ms": 0.216,
+    "p95_latency_ms": 0.275,
+    "throughput_fps": 4630.3,
+    "accuracy_pct": 100.0,
+    "artifact_size_kb": 107.9,
+    "speedup_vs_fp32": 14.32,
+    "size_reduction_pct": 46.9
+  },
+  "gpu_mps_accelerator": {
+    "mean_latency_ms": 1.899,
+    "p95_latency_ms": 4.141,
+    "throughput_fps": 526.5
+  },
+  "sub_15ms_sla_met": true,
+  "tensorrt_spec_path": "ml/artifacts/tensorrt_engine_spec.json"
+}
